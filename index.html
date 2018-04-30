@@ -146,7 +146,7 @@
             if (typeof(data) === 'undefined') return;
 
             let formattedPrice = formatQuote(data.price_usd);
-            let formattedChange = (data.price_usd * data.percent_change_24h).toLocaleString('en', {'minimumFractionDigits': 2});
+            let formattedChange = (data.price_usd * data.percent_change_24h/100).toLocaleString('en', {'minimumFractionDigits': 2});
             let formattedChangePercent = data.percent_change_24h + '%';
             let formattedMarketCap = formatMarketCap(data.market_cap_usd);
             let rgbColor = data.percent_change_24h > 0 ? '0,255,0' : '255,0,0';
