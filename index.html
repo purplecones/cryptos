@@ -3,9 +3,9 @@
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta charset="utf-8">
-    <title>Stocks!</title>
+    <title>Cryptos!</title>
     <link rel="icon" href="https://d3v3cbxkdlyonc.cloudfront.net/stocks/favicon.ico">
-    <meta name="description" content="A free, lightweight, blazing-fast page to get stock quotes using the IEX API">
+    <meta name="description" content="A free, lightweight, blazing-fast page to get crypto quotes using the CoinMarketCap API">
 
     <style>
       body {
@@ -52,31 +52,23 @@
     <div class="stocks-container"></div>
 
     <p class="attribution">
-      Data provided for free by <a href="https://iextrading.com/developer/" target="_blank">IEX</a>.
-      Subject to <a href="https://iextrading.com/api-exhibit-a/" target="_blank">IEX Exhibit A</a>.
+      Data provided for free by <a href="https://coinmarketcap.com/api/" target="_blank">coinmarketcap.com</a>.
     </p>
 
     <p class="updated-timestamp"></p>
 
-    <p>Customize <a href="https://github.com/toddwschneider/stocks" target="_blank">on GitHub</p>
+    <p>Customize <a href="https://github.com/purplecones/cryptos" target="_blank">on GitHub</p>
 
     <script>
       'use strict';
 
       const PORTFOLIOS = [
-        {'name': 'Market ETFs', 'symbols': ['SPY', 'DIA', 'QQQ', 'IWM']},
-        {'name': 'Sector ETFs', 'symbols': ['XLF', 'XLK', 'XLV', 'XLP', 'XLY', 'XLE', 'XLB', 'XLI', 'XLU', 'XLRE']},
-        {'name': 'Banks', 'symbols': ['GS', 'MS', 'JPM', 'WFC', 'C', 'BAC', 'BCS', 'DB', 'CS', 'RBS']},
-        {'name': 'Tech', 'symbols': ['AAPL', 'GOOGL', 'MSFT', 'AMZN', 'FB', 'TWTR', 'NFLX', 'SNAP', 'SPOT', 'DBX', 'BABA', 'INTC', 'AMD', 'NVDA', 'ORCL']},
-        {'name': 'Bond ETFs', 'symbols': ['BND', 'BIV', 'JNK']},
-        {'name': 'Other ETFs', 'symbols': ['VOO', 'VTI', 'VGK', 'VPL', 'VWO', 'VDE', 'XOP', 'VFH', 'VHT', 'VIG', 'VYM', 'VAW', 'REM', 'XHB', 'GLD']},
-        {'name': 'Mortgage REITs', 'symbols': ['EFC', 'EARN', 'NLY', 'AGNC', 'CIM', 'TWO', 'NRZ']},
-        {'name': 'BigCos', 'symbols': ['XOM', 'WMT', 'JNJ', 'GE', 'T', 'KO', 'DIS', 'MCD', 'PG']}
+        {'name': 'Large Cap', 'symbols': ['BTC', 'ETH', 'XRP', 'ADA', 'BAT']}
       ];
 
       const REFRESH_SECONDS = 10;
       const BATCH_SIZE = 100;
-      const BASE_URL = 'https://api.iextrading.com/1.0/stock/market/batch';
+      const BASE_URL = 'https://api.coinmarketcap.com/v1/ticker/';
 
       let symbols = [];
       let containerDiv = document.querySelector('.stocks-container');
@@ -85,7 +77,7 @@
       PORTFOLIOS.forEach((p, i) => addPortfolio(p, i === 0));
       symbols = symbols.filter((s, i) => symbols.indexOf(s) === i);
       updateData('addTitle');
-      setInterval(updateData, REFRESH_SECONDS * 1000);
+      setInterval(updateData, REFRESH_SECONDS * 300000);
 
       function addPortfolio(portfolio, includeHeader) {
         let tableHeaderHtml = '';
@@ -145,20 +137,20 @@
 
       function updateDataForBatch(symbols, addTitle) {
         let filters = ['latestPrice', 'change', 'changePercent', 'marketCap'];
-        if (addTitle) filters.push('companyName');
-        let url = `${BASE_URL}?types=quote&symbols=${symbols.join(',')}&filter=${filters.join(',')}`;
 
-        fetch(url).then(response => response.json()).then(json => {
+        fetch(BASE_URL).then(response => response.json()).then(json => {
+          const currencies = {};
+          json.forEach(currency => currencies[currency.symbol] = currency);
           symbols.forEach(symbol => {
-            let data = json[symbol];
+            let data = currencies[symbol];
             if (typeof(data) === 'undefined') return;
 
-            let formattedPrice = formatQuote(data.quote.latestPrice);
-            let formattedChange = data.quote.change.toLocaleString('en', {'minimumFractionDigits': 2});
-            let formattedChangePercent = (data.quote.changePercent * 100).toFixed(1) + '%';
-            let formattedMarketCap = formatMarketCap(data.quote.marketCap);
-            let rgbColor = data.quote.changePercent > 0 ? '0,255,0' : '255,0,0';
-            let rgbOpacity = Math.min(Math.abs(data.quote.changePercent) * 20, 1);
+            let formattedPrice = formatQuote(data.price_usd);
+            let formattedChange = (data.price_usd * data.percent_change_24h).toLocaleString('en', {'minimumFractionDigits': 2});
+            let formattedChangePercent = data.percent_change_24h + '%';
+            let formattedMarketCap = formatMarketCap(data.market_cap_usd);
+            let rgbColor = data.percent_change_24h > 0 ? '0,255,0' : '255,0,0';
+            let rgbOpacity = Math.min(Math.abs(data.percent_change_24h) * 20, 1);
 
             document.querySelectorAll(`[data-symbol="${symbol}"] .stock-price`).forEach(e => {
               e.innerHTML = formattedPrice;
@@ -182,7 +174,7 @@
 
             if (addTitle) {
               document.querySelectorAll(`[data-symbol="${symbol}"] .stock-symbol a`).forEach(e => {
-                e.setAttribute('title', data.quote.companyName);
+                e.setAttribute('title', data.name);
               });
             }
           });
